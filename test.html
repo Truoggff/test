@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Employee Management</h1>
+    <div>
+        <button onclick="fetchEmployees()">Show Employees</button>
+    </div>
+    <br>
+    <div>
+        <form id="employeeForm">
+            <input type="hidden" id="employeeId">
+            <label for="code">Code:</label>
+            <input type="text" id="code" required>
+            <label for="fullName">Full Name:</label>
+            <input type="text" id="fullName" required>
+            <label for="birthDate">Birth Date:</label>
+            <input type="date" id="birthDate" required>
+            <label for="gender">Gender:</label>
+            <select id="gender" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+    <br>
+    <div>
+        <table id="employeeTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Code</th>
+                    <th>Full Name</th>
+                    <th>Birth Date</th>
+                    <th>Gender</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+    <script>
+        document.getElementById('employeeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const employeeId = document.getElementById('employeeId').value;
+            if (employeeId) {
+                updateEmployee(employeeId);
+            } else {
+                addEmployee();
+            }
+        });
+
+        function fetchEmployees() {
+            fetch('http://192.168.16.107:52935/api/employee')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('employeeTable').getElementsByTagName('tbody')[0];
+                    tbody.innerHTML = '';
+                    data.forEach(employee => {
+                        const row = tbody.insertRow();
+                        row.insertCell(0).textContent = employee.ID;
+                        row.insertCell(1).textContent = employee.Code;
+                        row.insertCell(2).textContent = employee.FullName;
+                        row.insertCell(3).textContent = new Date(employee.BirthDate).toLocaleDateString();
+                        row.insertCell(4).textContent = employee.Gender;
+                        const actionsCell = row.insertCell(5);
+                        actionsCell.innerHTML = `<button onclick="editEmployee(${employee.ID})">Edit</button>
+                                                 <button onclick="deleteEmployee(${employee.ID})">Delete</button>`;
+                    });
+                });
+        }
+
+        function addEmployee() {
+            const employee = {
+                Code: document.getElementById('code').value,
+                FullName: document.getElementById('fullName').value,
+                BirthDate: document.getElementById('birthDate').value,
+                Gender: document.getElementById('gender').value
+            };
+
+            fetch('http://192.168.16.107:52935/api/employee', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(employee)
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+                fetchEmployees();
+                document.getElementById('employeeForm').reset();
+            });
+        }
+
+        function editEmployee(id) {
+            fetch(`http://192.168.16.107:52935/api/employee/${id}`)
+                .then(response => response.json())
+                .then(employee => {
+                    document.getElementById('employeeId').value = employee.ID;
+                    document.getElementById('code').value = employee.Code;
+                    document.getElementById('fullName').value = employee.FullName;
+                    document.getElementById('birthDate').value = new Date(employee.BirthDate).toISOString().substring(0, 10);
+                    document.getElementById('gender').value = employee.Gender;
+                });
+        }
+
+        function updateEmployee(id) {
+            const employee = {
+                ID: id,
+                Code: document.getElementById('code').value,
+                FullName: document.getElementById('fullName').value,
+                BirthDate: document.getElementById('birthDate').value,
+                Gender: document.getElementById('gender').value
+            };
+
+            fetch(`http://192.168.16.107:52935/api/employee/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(employee)
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+                fetchEmployees();
+                document.getElementById('employeeForm').reset();
+            });
+        }
+
+        function deleteEmployee(id) {
+            fetch(`http://192.168.16.107:52935/api/employee/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.text())
+            .then(data => {
+                alert(data);
+                fetchEmployees();
+            });
+        }
+    </script>
+</body>
+</html>
